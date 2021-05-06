@@ -92,9 +92,9 @@ function Setup()
 
     
     // Schlange am Anfang
-    snake = [startPos];
-    NewBox('white', startPos, thicc);
-    for (let i = 1; i < startLen; i++)
+    snake = [];
+    //NewBox('white', startPos, thicc);
+    for (let i = 0; i < startLen; i++)
     {
 
         DrawFront({x: startPos.x + i, y: startPos.y, d: direction});
@@ -131,16 +131,16 @@ function Loop()
     switch (direction)
     {
         case 'l': 
-            newCoord = {x: snake[0].x - 1, y: snake[0].y};
+            newCoord = {x: snake[0].x - 1, y: snake[0].y, d: 'l'};
             break;
         case 'u':
-            newCoord = {x: snake[0].x, y: snake[0].y - 1};
+            newCoord = {x: snake[0].x, y: snake[0].y - 1, d: 'u'};
             break;
         case 'r':
-            newCoord = {x: snake[0].x + 1, y: snake[0].y};
+            newCoord = {x: snake[0].x + 1, y: snake[0].y, d: 'r'};
             break;
         case 'd':
-            newCoord = {x: snake[0].x, y: snake[0].y + 1};
+            newCoord = {x: snake[0].x, y: snake[0].y + 1, d: 'd'};
             break;
     }
     
@@ -205,6 +205,7 @@ function Handler(event) {
     // Anfänglicher Tastendruck startet die Schleife
     if (!started)
     {
+        clearInterval(interval);
         interval = window.setInterval(Loop, 150);
         started = true;
     } else if (relativ)
@@ -313,14 +314,14 @@ function OutOfBounds(coord)
 function DrawFront(coord)
 {
     
-    NewBox('black', coord, fieldSize);
+    NewBox('black', coord, fieldSize / 2);
     if (smooth)
     {
         
 
         ctx.fillStyle = 'white';
         
-        switch (direction)
+        switch (coord.d)
         {
             case 'l': 
                 ctx.fillRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, fieldSize, thicc * 2);
@@ -346,20 +347,33 @@ function DrawFront(coord)
     snake.unshift(coord);
 }
 
-function EraseBack(old)
+function EraseBack(coord)
 {
 
     if (smooth)
     {
-        NewBox('black', old, thicc);
-        let last = snake[snake.length - 1];
-        let connectorPos = {x: (last.x - old.x) / 2, y: (last.y - old.y) / 2};
-        NewBox('black', {x: last.x - connectorPos.x, y: last.y - connectorPos.y}, thicc);
+        ctx.fillStyle = 'black';
+        
+        switch (coord.d)
+        {
+            case 'l': 
+                ctx.fillRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, fieldSize, thicc * 2);
+                break;
+            case 'u':
+                ctx.fillRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, thicc * 2, fieldSize);
+                break;
+            case 'r':
+                ctx.fillRect((coord.x * fieldSize) - (0.5 * fieldSize) + thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, fieldSize, thicc * 2);
+                break;
+            case 'd':
+                ctx.fillRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  - (0.5 * fieldSize) + thicc, thicc * 2, fieldSize);
+                break;
+        }
 
 
     } else
     {
       
-        NewBox('black', old, fieldSize);
+        NewBox('black', coord, thicc);
     }
 }
