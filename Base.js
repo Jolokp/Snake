@@ -22,8 +22,6 @@ var fieldSize = 20;
 
 function Setup()
 {
-    
-
     // smooth auslesen
     smooth = document.getElementById("smooth").checked;
 
@@ -67,19 +65,9 @@ function Setup()
     // Startlänge
     startLen = 2;
 
-    // Richtung setzen
-    direction = 'r';
 
-    // Menuelemente entfernen
-    var menu = document.getElementById("Menu");
-    menu.style.display = "none";
+    HideMenu();
 
-    // Spielelemente anzeigen
-    var game = document.getElementById("Game");
-    game.style.display = "block";
-
-    // Beim ersten Tastendruck noch nicht starten
-    started = false;
 
     // KeyListener setzen
     document.addEventListener('keydown', Handler);
@@ -90,23 +78,36 @@ function Setup()
     canvas.width = width * fieldSize;
     canvas.height = height * fieldSize;
 
-    
+    Start();
+}
+
+function Start()
+{
+    // canvas clearen
+    ctx.clearRect(0,0,width * fieldSize,height * fieldSize);
+
+    // Beim ersten Tastendruck noch nicht starten
+    started = false;
+
+    // Richtung setzen
+    direction = 'r';
+
     // Schlange am Anfang
     snake = [];
     //NewBox('white', startPos, thicc);
     for (let i = 0; i < startLen; i++)
     {
-
-        DrawFront({x: startPos.x + i, y: startPos.y, d: direction});
+        let coord = {x: startPos.x + i, y: startPos.y, d: direction};
+        DrawFront(coord);
+        snake.unshift(coord);
     }
 
     // Erstes Essen
     GenerateFood();
-    
 }
 
 
-function Menu()
+function ShowMenu()
 {
     // Intervall unterbrechen
     clearInterval(interval);
@@ -118,6 +119,17 @@ function Menu()
     // Spielelemente entfernen
     var game = document.getElementById("Game");
     game.style.display = "none";
+}
+
+function HideMenu()
+{
+    // Menuelemente entfernen
+    var menu = document.getElementById("Menu");
+    menu.style.display = "none";
+
+    // Spielelemente anzeigen
+    var game = document.getElementById("Game");
+    game.style.display = "block";
 }
 
 
@@ -150,26 +162,30 @@ function Loop()
     {
         // Wenn Essen aufgenommen wird, das Ende der Schlange nicht wegmachen
         DrawFront(newCoord);
+        snake.unshift(newCoord);
         // Neues Essen generieren
         GenerateFood();
     } else if (OnSnake(newCoord))
     {
         // Wenn Schlange getroffen wird, Intervall stoppen, alert senden und neu starten
+        DrawFront(newCoord);
         clearInterval(interval);
-        alert("Game Over!");
-        Setup();
+        setTimeout(function(){  alert("Game Over");
+                                Start(); }, 300);
     } else if (OutOfBounds(newCoord))
     {
+        
 
         if (walls)
         {
             // Wenn Rand getroffen wird, Intervall stoppen, alert senden und neu starten
+            DrawFront(newCoord);
             clearInterval(interval);
-            alert("Game Over!");
-            Setup();
+            setTimeout(function(){  alert("Game Over");
+                                    Start(); }, 300);
         } else
         {
-            
+            DrawFront(newCoord);
             // Loop back around
             if (newCoord.x < 0)
             {
@@ -188,6 +204,7 @@ function Loop()
             // normal weiter
             EraseBack(snake.pop());
             DrawFront(newCoord);
+            snake.unshift(newCoord);
             
         }
     } else 
@@ -195,7 +212,7 @@ function Loop()
         // normaler Fall
         EraseBack(snake.pop());
         DrawFront(newCoord);
-        
+        snake.unshift(newCoord);
     }
     
 
@@ -314,7 +331,7 @@ function OutOfBounds(coord)
 function DrawFront(coord)
 {
     
-    NewBox('black', coord, fieldSize / 2);
+    ctx.clearRect(coord.x * fieldSize, coord.y * fieldSize, fieldSize, fieldSize);
     if (smooth)
     {
         
@@ -344,7 +361,9 @@ function DrawFront(coord)
 
     
     
-    snake.unshift(coord);
+    
+    
+    
 }
 
 function EraseBack(coord)
@@ -352,24 +371,32 @@ function EraseBack(coord)
 
     if (smooth)
     {
-        ctx.fillStyle = 'black';
+        let atTheWall = 0;
+        let last = snake[snake.length - 1];
+
+        // Wenn die Schlange über eine Wand reicht, das wegzumachende also vor einer Wand ist, auch das letzte Stück noch erasen
+        if (  (coord.x == 0 && last.x == (width - 1))  ||  (coord.x == (width - 1) && last.x == 0)  ||  (coord.y == 0 && last.y == (height - 1))  ||  (coord.y == (height - 1) && last.y == 0)  )
+        {
+            atTheWall = (fieldSize / 2) - thicc;
+        } 
         
         switch (coord.d)
         {
             case 'l': 
-                ctx.fillRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, fieldSize, thicc * 2);
+                ctx.clearRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc - atTheWall, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, fieldSize + atTheWall, thicc * 2);
                 break;
             case 'u':
-                ctx.fillRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, thicc * 2, fieldSize);
+                ctx.clearRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc - atTheWall, thicc * 2, fieldSize + atTheWall);
                 break;
             case 'r':
-                ctx.fillRect((coord.x * fieldSize) - (0.5 * fieldSize) + thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, fieldSize, thicc * 2);
+                ctx.clearRect((coord.x * fieldSize) - (0.5 * fieldSize) + thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, fieldSize + atTheWall, thicc * 2);
                 break;
             case 'd':
-                ctx.fillRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  - (0.5 * fieldSize) + thicc, thicc * 2, fieldSize);
+                ctx.clearRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  - (0.5 * fieldSize) + thicc, thicc * 2, fieldSize + atTheWall);
                 break;
         }
 
+               
 
     } else
     {
