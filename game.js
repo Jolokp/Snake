@@ -1,12 +1,12 @@
 var canvas;
 var ctx;
-var direction;
 var interval;
 var food;
 var started;
 
 var smooth;
 var walls;
+var inputbuffer;
 var relativ;
 var height;
 var width;
@@ -36,11 +36,11 @@ function Setup()
         if(perspective[i].checked == true)
         {
             // unterschiedlicher Umgang mit Richtungen
-            if (perspective[i].value == "Absolut")
+            if (perspective[i].value == "absolut")
             {
                 relativ = false;
             }
-            else if (perspective[i].value == "Relativ")
+            else if (perspective[i].value == "relativ")
             {
                 relativ = true;
             }
@@ -89,15 +89,18 @@ function Start()
     // Beim ersten Tastendruck noch nicht starten
     started = false;
 
-    // Richtung setzen
-    direction = 'r';
 
     // Schlange am Anfang
     snake = [];
+
+    
+    // Inputbuffer
+    inputbuffer = [];
+
     //NewBox('white', startPos, thicc);
     for (let i = 0; i < startLen; i++)
     {
-        let coord = {x: startPos.x + i, y: startPos.y, d: direction, temp: false};
+        let coord = {x: startPos.x + i, y: startPos.y, d: 'r', temp: false};
         DrawFront(coord);
     }
 
@@ -137,9 +140,18 @@ function Loop()
     // Variable für die zu berechnende Koordinate
     let newCoord;
 
+    let newDirection;
+
+    if (inputbuffer.length == 0)
+    {
+        newDirection = snake[0].d;
+    } else
+    {
+        newDirection = inputbuffer.pop();
+    }
     
     // Neue Position => Richtungen l-left, r-right, u-up, d-down
-    switch (direction)
+    switch (newDirection)
     {
         case 'l': 
             newCoord = {x: snake[0].x - 1, y: snake[0].y, d: 'l', temp: false};
@@ -224,61 +236,80 @@ function Handler(event) {
         clearInterval(interval);
         interval = window.setInterval(Loop, 150);
         started = true;
-    } else if (relativ)
+        return;
+    }
+    
+    // Wenn im Buffer was drin ist, mit dem letzten Buffer, sonst mit snake[0] vergleichen
+    let direction;
+    if (inputbuffer.length > 0)
+    {
+        direction = inputbuffer[0];
+    } else
+    {
+        direction = snake[0].d;
+    }
+    
+    if (relativ)
     {
         if(event.keyCode === 37) 
         {
-            // Pfeil nach links => relative Änderung abhängig von Richtung
+            // Pfeil nach links
+
+            
+            // entsprechende relative Richtung zum Buffer hinzufügen
             switch (direction)
             {
                 case 'l': 
-                    direction = 'd';
+                    inputbuffer.unshift('d');
                     break;
                 case 'u':
-                    direction = 'l';
+                    inputbuffer.unshift('l');
                     break;
                 case 'r':
-                    direction = 'u';
+                    inputbuffer.unshift('u');
                     break;
                 case 'd':
-                    direction = 'r';
+                    inputbuffer.unshift('r');
                     break;
             }
+            
 
         } else if(event.keyCode === 39) 
         {
-            // Pfeil nach rechts => relative Änderung abhängig von Richtung
+            // Pfeil nach rechts
+
+            // entsprechende relative Richtung zum Buffer hinzufügen
             switch (direction)
             {
                 case 'l': 
-                    direction = 'u';
+                    inputbuffer.unshift('u');
                     break;
                 case 'u':
-                    direction = 'r';
+                    inputbuffer.unshift('r');
                     break;
                 case 'r':
-                    direction = 'd';
+                    inputbuffer.unshift('d');
                     break;
                 case 'd':
-                    direction = 'l';
+                    inputbuffer.unshift('l');
                     break;
             }
         }
     } else
     {
-        // Richtungsänderung, nur wenn es nicht die entgegengesetzte ist
-        if (event.keyCode === 65 && direction != 'r')
+        // Richtungsänderung, nur wenn es nicht die entgegengesetzte oder die gleiche ist
+        if (event.keyCode === 65 && direction != 'r' && direction != 'l')
         {
-            direction = 'l';
-        } else if(event.keyCode === 68 && direction != 'l') 
+            inputbuffer.unshift('l');
+        } else if(event.keyCode === 68 && direction != 'l' && direction != 'r') 
         {
-            direction = 'r';
-        } else if(event.keyCode === 83 && direction != 'u') 
+            inputbuffer.unshift('r');
+        } else if(event.keyCode === 83 && direction != 'u' && direction != 'd') 
         {
-            direction = 'd';
-        } else if(event.keyCode === 87 && direction != 'd') 
+            inputbuffer.unshift('d');
+        } else if(event.keyCode === 87 && direction != 'd' && direction != 'u') 
         {
-            direction = 'u';
+            inputbuffer.unshift('u');
         }
     }
     
