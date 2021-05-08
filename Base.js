@@ -22,8 +22,6 @@ var fieldSize = 20;
 
 function Setup()
 {
-    
-
     // smooth auslesen
     smooth = document.getElementById("smooth").checked;
 
@@ -67,19 +65,9 @@ function Setup()
     // Startlänge
     startLen = 2;
 
-    // Richtung setzen
-    direction = 'r';
 
-    // Menuelemente entfernen
-    var menu = document.getElementById("Menu");
-    menu.style.display = "none";
+    HideMenu();
 
-    // Spielelemente anzeigen
-    var game = document.getElementById("Game");
-    game.style.display = "block";
-
-    // Beim ersten Tastendruck noch nicht starten
-    started = false;
 
     // KeyListener setzen
     document.addEventListener('keydown', Handler);
@@ -90,23 +78,35 @@ function Setup()
     canvas.width = width * fieldSize;
     canvas.height = height * fieldSize;
 
-    
-    // Schlange am Anfang
-    snake = [startPos];
-    NewBox('white', startPos, thicc);
-    for (let i = 1; i < startLen; i++)
-    {
+    Start();
+}
 
-        DrawFront({x: startPos.x + i, y: startPos.y, d: direction});
+function Start()
+{
+    // canvas clearen
+    ctx.clearRect(0, 0, width * fieldSize, height * fieldSize);
+
+    // Beim ersten Tastendruck noch nicht starten
+    started = false;
+
+    // Richtung setzen
+    direction = 'r';
+
+    // Schlange am Anfang
+    snake = [];
+    //NewBox('white', startPos, thicc);
+    for (let i = 0; i < startLen; i++)
+    {
+        let coord = {x: startPos.x + i, y: startPos.y, d: direction, temp: false};
+        DrawFront(coord);
     }
 
     // Erstes Essen
     GenerateFood();
-    
 }
 
 
-function Menu()
+function ShowMenu()
 {
     // Intervall unterbrechen
     clearInterval(interval);
@@ -120,6 +120,17 @@ function Menu()
     game.style.display = "none";
 }
 
+function HideMenu()
+{
+    // Menuelemente entfernen
+    var menu = document.getElementById("Menu");
+    menu.style.display = "none";
+
+    // Spielelemente anzeigen
+    var game = document.getElementById("Game");
+    game.style.display = "block";
+}
+
 
 function Loop() 
 {
@@ -131,16 +142,16 @@ function Loop()
     switch (direction)
     {
         case 'l': 
-            newCoord = {x: snake[0].x - 1, y: snake[0].y};
+            newCoord = {x: snake[0].x - 1, y: snake[0].y, d: 'l', temp: false};
             break;
         case 'u':
-            newCoord = {x: snake[0].x, y: snake[0].y - 1};
+            newCoord = {x: snake[0].x, y: snake[0].y - 1, d: 'u', temp: false};
             break;
         case 'r':
-            newCoord = {x: snake[0].x + 1, y: snake[0].y};
+            newCoord = {x: snake[0].x + 1, y: snake[0].y, d: 'r', temp: false};
             break;
         case 'd':
-            newCoord = {x: snake[0].x, y: snake[0].y + 1};
+            newCoord = {x: snake[0].x, y: snake[0].y + 1, d: 'd', temp: false};
             break;
     }
     
@@ -155,20 +166,26 @@ function Loop()
     } else if (OnSnake(newCoord))
     {
         // Wenn Schlange getroffen wird, Intervall stoppen, alert senden und neu starten
+        DrawFront(newCoord);
         clearInterval(interval);
-        alert("Game Over!");
-        Setup();
+        setTimeout(function(){  alert("Game Over");
+                                Start(); }, 300);
     } else if (OutOfBounds(newCoord))
     {
+        
 
         if (walls)
         {
             // Wenn Rand getroffen wird, Intervall stoppen, alert senden und neu starten
+            DrawFront(newCoord);
             clearInterval(interval);
-            alert("Game Over!");
-            Setup();
+            setTimeout(function(){  alert("Game Over");
+                                    Start(); }, 300);
         } else
         {
+            tempOut = {x: newCoord.x, y: newCoord.y, d: newCoord.d, temp: true};
+            DrawFront(tempOut);
+
             
             // Loop back around
             if (newCoord.x < 0)
@@ -195,7 +212,6 @@ function Loop()
         // normaler Fall
         EraseBack(snake.pop());
         DrawFront(newCoord);
-        
     }
     
 
@@ -205,6 +221,7 @@ function Handler(event) {
     // Anfänglicher Tastendruck startet die Schleife
     if (!started)
     {
+        clearInterval(interval);
         interval = window.setInterval(Loop, 150);
         started = true;
     } else if (relativ)
@@ -287,16 +304,12 @@ function GenerateFood()
     {
         size = (fieldSize / 2);
     }
-    NewBox('blue', food, size);
-    
+
+    ctx.fillStyle = 'blue';
+    ctx.fillRect((food.x * fieldSize) + (0.5 * fieldSize) - size, (food.y * fieldSize) + (0.5 * fieldSize) - size, size * 2, size * 2);
 }
 
-function NewBox(color, coord, thic)
-{
-    // Anzeigen einer New => Farbe, Korrdinaten und Grenze drumherum variable
-    ctx.fillStyle = color;
-    ctx.fillRect((coord.x * fieldSize) + (0.5 * fieldSize) - thic, (coord.y * fieldSize) + (0.5 * fieldSize) - thic, thic * 2, thic * 2);
-}
+
 
 function OnSnake(pCoord)
 {   
@@ -312,15 +325,16 @@ function OutOfBounds(coord)
 
 function DrawFront(coord)
 {
-    
-    NewBox('black', coord, fieldSize);
+    // Alles davor wegmachen
+    ctx.clearRect(coord.x * fieldSize, coord.y * fieldSize, fieldSize, fieldSize);
+
+    ctx.fillStyle = 'white';
+
     if (smooth)
     {
         
-
-        ctx.fillStyle = 'white';
-        
-        switch (direction)
+        // abhängig von der aktuellen Richtung Schlangenteil malen
+        switch (coord.d)
         {
             case 'l': 
                 ctx.fillRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, fieldSize, thicc * 2);
@@ -338,28 +352,47 @@ function DrawFront(coord)
 
     } else
     {
-        NewBox('white', coord, thicc);
+        ctx.fillRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, thicc * 2, thicc * 2);
     }
 
     
     
     snake.unshift(coord);
+    
+    
 }
 
-function EraseBack(old)
+function EraseBack(coord)
 {
 
     if (smooth)
     {
-        NewBox('black', old, thicc);
-        let last = snake[snake.length - 1];
-        let connectorPos = {x: (last.x - old.x) / 2, y: (last.y - old.y) / 2};
-        NewBox('black', {x: last.x - connectorPos.x, y: last.y - connectorPos.y}, thicc);
+        
+        switch (coord.d)
+        {
+            case 'l': 
+                ctx.clearRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, fieldSize, thicc * 2);
+                break;
+            case 'u':
+                ctx.clearRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, thicc * 2, fieldSize);
+                break;
+            case 'r':
+                ctx.clearRect((coord.x * fieldSize) - (0.5 * fieldSize) + thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, fieldSize, thicc * 2);
+                break;
+            case 'd':
+                ctx.clearRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  - (0.5 * fieldSize) + thicc, thicc * 2, fieldSize);
+                break;
+        }
 
+               
 
     } else
     {
-      
-        NewBox('black', old, fieldSize);
+        ctx.clearRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, thicc * 2, thicc * 2);
+    }
+
+    if (coord.temp)
+    {
+        EraseBack(snake.pop());
     }
 }
