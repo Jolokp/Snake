@@ -84,7 +84,7 @@ function Setup()
 function Start()
 {
     // canvas clearen
-    ctx.clearRect(0,0,width * fieldSize,height * fieldSize);
+    ctx.clearRect(0, 0, width * fieldSize, height * fieldSize);
 
     // Beim ersten Tastendruck noch nicht starten
     started = false;
@@ -97,9 +97,8 @@ function Start()
     //NewBox('white', startPos, thicc);
     for (let i = 0; i < startLen; i++)
     {
-        let coord = {x: startPos.x + i, y: startPos.y, d: direction};
+        let coord = {x: startPos.x + i, y: startPos.y, d: direction, temp: false};
         DrawFront(coord);
-        snake.unshift(coord);
     }
 
     // Erstes Essen
@@ -143,16 +142,16 @@ function Loop()
     switch (direction)
     {
         case 'l': 
-            newCoord = {x: snake[0].x - 1, y: snake[0].y, d: 'l'};
+            newCoord = {x: snake[0].x - 1, y: snake[0].y, d: 'l', temp: false};
             break;
         case 'u':
-            newCoord = {x: snake[0].x, y: snake[0].y - 1, d: 'u'};
+            newCoord = {x: snake[0].x, y: snake[0].y - 1, d: 'u', temp: false};
             break;
         case 'r':
-            newCoord = {x: snake[0].x + 1, y: snake[0].y, d: 'r'};
+            newCoord = {x: snake[0].x + 1, y: snake[0].y, d: 'r', temp: false};
             break;
         case 'd':
-            newCoord = {x: snake[0].x, y: snake[0].y + 1, d: 'd'};
+            newCoord = {x: snake[0].x, y: snake[0].y + 1, d: 'd', temp: false};
             break;
     }
     
@@ -162,7 +161,6 @@ function Loop()
     {
         // Wenn Essen aufgenommen wird, das Ende der Schlange nicht wegmachen
         DrawFront(newCoord);
-        snake.unshift(newCoord);
         // Neues Essen generieren
         GenerateFood();
     } else if (OnSnake(newCoord))
@@ -185,7 +183,10 @@ function Loop()
                                     Start(); }, 300);
         } else
         {
-            DrawFront(newCoord);
+            tempOut = {x: newCoord.x, y: newCoord.y, d: newCoord.d, temp: true};
+            DrawFront(tempOut);
+
+            
             // Loop back around
             if (newCoord.x < 0)
             {
@@ -204,7 +205,6 @@ function Loop()
             // normal weiter
             EraseBack(snake.pop());
             DrawFront(newCoord);
-            snake.unshift(newCoord);
             
         }
     } else 
@@ -212,7 +212,6 @@ function Loop()
         // normaler Fall
         EraseBack(snake.pop());
         DrawFront(newCoord);
-        snake.unshift(newCoord);
     }
     
 
@@ -305,16 +304,12 @@ function GenerateFood()
     {
         size = (fieldSize / 2);
     }
-    NewBox('blue', food, size);
-    
+
+    ctx.fillStyle = 'blue';
+    ctx.fillRect((food.x * fieldSize) + (0.5 * fieldSize) - size, (food.y * fieldSize) + (0.5 * fieldSize) - size, size * 2, size * 2);
 }
 
-function NewBox(color, coord, thic)
-{
-    // Anzeigen einer New => Farbe, Korrdinaten und Grenze drumherum variable
-    ctx.fillStyle = color;
-    ctx.fillRect((coord.x * fieldSize) + (0.5 * fieldSize) - thic, (coord.y * fieldSize) + (0.5 * fieldSize) - thic, thic * 2, thic * 2);
-}
+
 
 function OnSnake(pCoord)
 {   
@@ -330,14 +325,15 @@ function OutOfBounds(coord)
 
 function DrawFront(coord)
 {
-    
+    // Alles davor wegmachen
     ctx.clearRect(coord.x * fieldSize, coord.y * fieldSize, fieldSize, fieldSize);
+
+    ctx.fillStyle = 'white';
+
     if (smooth)
     {
         
-
-        ctx.fillStyle = 'white';
-        
+        // abhängig von der aktuellen Richtung Schlangenteil malen
         switch (coord.d)
         {
             case 'l': 
@@ -356,12 +352,12 @@ function DrawFront(coord)
 
     } else
     {
-        NewBox('white', coord, thicc);
+        ctx.fillRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, thicc * 2, thicc * 2);
     }
 
     
     
-    
+    snake.unshift(coord);
     
     
 }
@@ -371,28 +367,20 @@ function EraseBack(coord)
 
     if (smooth)
     {
-        let atTheWall = 0;
-        let last = snake[snake.length - 1];
-
-        // Wenn die Schlange über eine Wand reicht, das wegzumachende also vor einer Wand ist, auch das letzte Stück noch erasen
-        if (  (coord.x == 0 && last.x == (width - 1))  ||  (coord.x == (width - 1) && last.x == 0)  ||  (coord.y == 0 && last.y == (height - 1))  ||  (coord.y == (height - 1) && last.y == 0)  )
-        {
-            atTheWall = (fieldSize / 2) - thicc;
-        } 
         
         switch (coord.d)
         {
             case 'l': 
-                ctx.clearRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc - atTheWall, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, fieldSize + atTheWall, thicc * 2);
+                ctx.clearRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, fieldSize, thicc * 2);
                 break;
             case 'u':
-                ctx.clearRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc - atTheWall, thicc * 2, fieldSize + atTheWall);
+                ctx.clearRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, thicc * 2, fieldSize);
                 break;
             case 'r':
-                ctx.clearRect((coord.x * fieldSize) - (0.5 * fieldSize) + thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, fieldSize + atTheWall, thicc * 2);
+                ctx.clearRect((coord.x * fieldSize) - (0.5 * fieldSize) + thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, fieldSize, thicc * 2);
                 break;
             case 'd':
-                ctx.clearRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  - (0.5 * fieldSize) + thicc, thicc * 2, fieldSize + atTheWall);
+                ctx.clearRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  - (0.5 * fieldSize) + thicc, thicc * 2, fieldSize);
                 break;
         }
 
@@ -400,7 +388,11 @@ function EraseBack(coord)
 
     } else
     {
-      
-        NewBox('black', coord, thicc);
+        ctx.clearRect((coord.x * fieldSize) + (0.5 * fieldSize) - thicc, (coord.y * fieldSize)  + (0.5 * fieldSize) - thicc, thicc * 2, thicc * 2);
+    }
+
+    if (coord.temp)
+    {
+        EraseBack(snake.pop());
     }
 }
