@@ -12,6 +12,8 @@ var height;
 var width;
 var thicc;
 
+var score;
+var points;
 var startPos;
 var startLen;
 var fieldSize = 20;
@@ -68,6 +70,7 @@ function Setup()
 
     HideMenu();
 
+    score = document.getElementById("score");
 
     // KeyListener setzen
     document.addEventListener('keydown', Handler);
@@ -89,6 +92,9 @@ function Start()
     // Beim ersten Tastendruck noch nicht starten
     started = false;
 
+    // Punkte auf 0
+    points = 0;
+    score.innerText = points;
 
     // Schlange am Anfang
     snake = [];
@@ -175,12 +181,16 @@ function Loop()
         DrawFront(newCoord);
         // Neues Essen generieren
         GenerateFood();
+
+        // points + 1 und anzeigen
+        points += 1;
+        score.innerText = points;
     } else if (OnSnake(newCoord))
     {
         // Wenn Schlange getroffen wird, Intervall stoppen, alert senden und neu starten
         DrawFront(newCoord);
         clearInterval(interval);
-        setTimeout(function(){  alert("Game Over");
+        setTimeout(function(){  alert("Game Over! " + points + " Punkte");
                                 Start(); }, 300);
     } else if (OutOfBounds(newCoord))
     {
@@ -191,7 +201,7 @@ function Loop()
             // Wenn Rand getroffen wird, Intervall stoppen, alert senden und neu starten
             DrawFront(newCoord);
             clearInterval(interval);
-            setTimeout(function(){  alert("Game Over");
+            setTimeout(function(){  alert("Game Over! " + points + " Punkte");
                                     Start(); }, 300);
         } else
         {
